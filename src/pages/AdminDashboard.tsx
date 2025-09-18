@@ -435,6 +435,24 @@ export function AdminDashboard() {
                     </p>
                   </div>
                 </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      setSelectedManagerForPasswordReset(manager);
+                      setShowPasswordResetModal(true);
+                      setNewPassword('');
+                      setConfirmNewPassword('');
+                      setOtpSent(false);
+                      setOtpVerified(false);
+                      setPasswordResetError('');
+                      setPasswordResetSuccess('');
+                    }}
+                    className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Reset Password"
+                  >
+                    <LockKeyhole className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
