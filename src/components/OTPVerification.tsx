@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Shield, Mail, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { emailService } from '../lib/emailService';
 
 interface OTPVerificationProps {
   operationType: 'add_manager' | 'delete_manager';
@@ -16,7 +17,7 @@ export function OTPVerification({ operationType, targetData, onSuccess, onCancel
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [emailSent, setEmailSent] = useState(false);
-  const [verificationToken, setVerificationToken] = useState('');
+  const [generatedOTP, setGeneratedOTP] = useState('');
 
   const sendVerificationEmail = async () => {
     if (!profile?.email) return;
@@ -25,20 +26,32 @@ export function OTPVerification({ operationType, targetData, onSuccess, onCancel
     setError('');
     
     try {
-      // Use Supabase's built-in OTP email verification
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: profile.email,
-        options: {
-          shouldCreateUser: false, // Don't create new user, just send OTP
-          data: {
-            operation_type: operationType,
-            target_data: targetData,
-            admin_id: profile.id
-          }
-        }
+      // Generate OTP using custom RPC function
+      const { data, error } = await supabase.rpc('generate_otp', {
+        p_admin_id: profile.id,
+        p_operation_type: operationType,
+        p_target_data: targetData
       });
       
       if (error) throw error;
+      
+      if (!data) {
+        throw new Error('Failed to generate OTP');
+      }
+      
+      // Store the generated OTP for development mode
+      setGeneratedOTP(data);
+      
+      // Send email using Resend
+      const emailSent = await emailService.sendOTPEmail(
+        profile.email,
+        data,
+        operationType
+      );
+      
+      if (!emailSent) {
+        throw new Error('Failed to send verification email');
+      }
       
       setEmailSent(true);
       
@@ -56,17 +69,17 @@ export function OTPVerification({ operationType, targetData, onSuccess, onCancel
     setError('');
     
     try {
-      // Verify the OTP using Supabase's built-in verification
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: profile.email,
-        token: otpCode.trim(),
-        type: 'email'
+      // Verify OTP using custom RPC function
+      const { data, error } = await supabase.rpc('verify_otp', {
+        p_admin_id: profile.id,
+        p_otp_code: otpCode.trim(),
+        p_operation_type: operationType
       });
       
       if (error) throw error;
       
-      if (data.user) {
-        // OTP verified successfully, proceed with the operation
+      if (data === true) {
+        // OTP verified successfully
         onSuccess({
           valid: true,
           operation_type: operationType,
@@ -140,6 +153,15 @@ export function OTPVerification({ operationType, targetData, onSuccess, onCancel
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Development Mode Info */}
+            {generatedOTP && import.meta.env.DEV && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  <strong>Development Mode:</strong> OTP Code is {generatedOTP}
+                </p>
               </div>
             )}
 
