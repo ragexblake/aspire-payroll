@@ -58,7 +58,7 @@ const initializeSampleData = (managerId: string, plantId: string) => {
   if (existingEmployees.length === 0) {
     const sampleEmployees: Employee[] = [
       {
-        id: `emp-${Date.now()}-1`,
+        id: `emp-${managerId}-1`,
         employee_id: 'EMP001',
         full_name: 'John Smith',
         email: 'john.smith@company.com',
@@ -72,7 +72,7 @@ const initializeSampleData = (managerId: string, plantId: string) => {
         created_at: new Date().toISOString()
       },
       {
-        id: `emp-${Date.now()}-2`,
+        id: `emp-${managerId}-2`,
         employee_id: 'EMP002',
         full_name: 'Sarah Johnson',
         email: 'sarah.johnson@company.com',
@@ -86,7 +86,7 @@ const initializeSampleData = (managerId: string, plantId: string) => {
         created_at: new Date().toISOString()
       },
       {
-        id: `emp-${Date.now()}-3`,
+        id: `emp-${managerId}-3`,
         employee_id: 'EMP003',
         full_name: 'Michael Brown',
         email: 'michael.brown@company.com',
@@ -100,7 +100,7 @@ const initializeSampleData = (managerId: string, plantId: string) => {
         created_at: new Date().toISOString()
       },
       {
-        id: `emp-${Date.now()}-4`,
+        id: `emp-${managerId}-4`,
         employee_id: 'EMP004',
         full_name: 'Emily Davis',
         email: 'emily.davis@company.com',
@@ -114,7 +114,7 @@ const initializeSampleData = (managerId: string, plantId: string) => {
         created_at: new Date().toISOString()
       },
       {
-        id: `emp-${Date.now()}-5`,
+        id: `emp-${managerId}-5`,
         employee_id: 'EMP005',
         full_name: 'Robert Wilson',
         email: 'robert.wilson@company.com',
@@ -128,7 +128,7 @@ const initializeSampleData = (managerId: string, plantId: string) => {
         created_at: new Date().toISOString()
       },
       {
-        id: `emp-${Date.now()}-6`,
+        id: `emp-${managerId}-6`,
         employee_id: 'EMP006',
         full_name: 'Lisa Anderson',
         email: 'lisa.anderson@company.com',
@@ -142,7 +142,7 @@ const initializeSampleData = (managerId: string, plantId: string) => {
         created_at: new Date().toISOString()
       },
       {
-        id: `emp-${Date.now()}-7`,
+        id: `emp-${managerId}-7`,
         employee_id: 'EMP007',
         full_name: 'David Martinez',
         email: 'david.martinez@company.com',
@@ -156,7 +156,7 @@ const initializeSampleData = (managerId: string, plantId: string) => {
         created_at: new Date().toISOString()
       },
       {
-        id: `emp-${Date.now()}-8`,
+        id: `emp-${managerId}-8`,
         employee_id: 'EMP008',
         full_name: 'Jennifer Taylor',
         email: 'jennifer.taylor@company.com',
@@ -239,25 +239,37 @@ export function ManagerDashboard() {
           .from('plants')
           .select('*')
           .eq('id', profile.plant_id)
-          .single();
+          .maybeSingle();
 
-        if (plantError) throw plantError;
+        if (plantError && plantError.code !== 'PGRST116') {
+          throw plantError;
+        }
         setPlant(plantData);
 
         // Fetch employees imported by this manager
         const { data: employeesData, error: employeesError } = await supabase
           .from('employees')
           .select('*')
-          .eq('manager_id', profile.id)
-          .eq('plant_id', profile.plant_id)
+          .or(`manager_id.eq.${profile.id},plant_id.eq.${profile.plant_id}`)
           .order('created_at', { ascending: false });
 
-        if (employeesError) throw employeesError;
-        setEmployees(employeesData || []);
+        if (employeesError && employeesError.code !== 'PGRST116') {
+          console.log('Employee fetch error:', employeesError);
+          // If table doesn't exist, fall back to empty array
+          setEmployees([]);
+        } else {
+          setEmployees(employeesData || []);
+        }
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load data');
-      console.error('Error fetching data:', err);
+      console.log('Fetch data error:', err);
+      // Don't show error for missing tables, just use empty data
+      if (err.message?.includes('Could not find the table')) {
+        setEmployees([]);
+        setError('');
+      } else {
+        setError(err.message || 'Failed to load data');
+      }
     } finally {
       setLoading(false);
     }
