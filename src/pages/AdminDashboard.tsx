@@ -7,7 +7,9 @@ import { ProfileSettings } from '../components/ProfileSettings';
 import { EmployeeData } from '../components/EmployeeData';
 import { DashboardOverview } from '../components/DashboardOverview';
 import { EmployeeManagement } from '../components/EmployeeManagement';
-import { Building2, MapPin, Users, TrendingUp, Plus, UserPlus, X } from 'lucide-react';
+import { OTPVerification } from '../components/OTPVerification';
+import { EmailService } from '../lib/emailService';
+import { Building2, MapPin, Users, TrendingUp, Plus, UserPlus, X, LockKeyhole, Lock, KeyRound } from 'lucide-react';
 
 interface Plant {
   id: string;
@@ -64,6 +66,17 @@ export function AdminDashboard() {
   const [showAddPlant, setShowAddPlant] = useState(false);
   const [showAddManager, setShowAddManager] = useState(false);
   const [selectedPlantId, setSelectedPlantId] = useState('');
+  
+  // Password reset states
+  const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
+  const [selectedManagerForPasswordReset, setSelectedManagerForPasswordReset] = useState<Manager | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [passwordResetLoading, setPasswordResetLoading] = useState(false);
+  const [passwordResetError, setPasswordResetError] = useState('');
+  const [passwordResetSuccess, setPasswordResetSuccess] = useState('');
 
   // Form states
   const [plantForm, setPlantForm] = useState({ name: '', location: '' });
