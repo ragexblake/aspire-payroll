@@ -16,7 +16,7 @@ export function OTPVerification({ operationType, targetData, onSuccess, onCancel
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [emailSent, setEmailSent] = useState(false);
-  const [otpId, setOtpId] = useState('');
+  const [verificationToken, setVerificationToken] = useState('');
 
   const sendVerificationEmail = async () => {
     if (!profile?.email) return;
@@ -25,27 +25,22 @@ export function OTPVerification({ operationType, targetData, onSuccess, onCancel
     setError('');
     
     try {
-      // Generate OTP using our custom function
-      const { data, error } = await supabase.rpc('generate_otp', {
-        p_admin_id: profile.id,
-        p_operation_type: operationType,
-        p_target_data: targetData
+      // Use Supabase's built-in OTP email verification
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email: profile.email,
+        options: {
+          shouldCreateUser: false, // Don't create new user, just send OTP
+          data: {
+            operation_type: operationType,
+            target_data: targetData,
+            admin_id: profile.id
+          }
+        }
       });
       
       if (error) throw error;
       
-      if (data && data.otp_id) {
-        setOtpId(data.otp_id);
-        setEmailSent(true);
-        
-        // In development, show the OTP code
-        if (data.otp_code) {
-          console.log('Development OTP Code:', data.otp_code);
-          alert(`Development Mode - OTP Code: ${data.otp_code}`);
-        }
-      } else {
-        throw new Error('Failed to generate OTP');
-      }
+      setEmailSent(true);
       
     } catch (err: any) {
       setError(err.message || 'Failed to send verification email');
@@ -55,22 +50,23 @@ export function OTPVerification({ operationType, targetData, onSuccess, onCancel
   };
 
   const verifyOTP = async () => {
-    if (!otpCode.trim() || !otpId) return;
+    if (!profile?.email || !otpCode.trim()) return;
     
     setLoading(true);
     setError('');
     
     try {
-      // Verify OTP using our custom function
-      const { data, error } = await supabase.rpc('verify_otp', {
-        p_otp_id: otpId,
-        p_otp_code: otpCode.trim()
+      // Verify the OTP using Supabase's built-in verification
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: profile.email,
+        token: otpCode.trim(),
+        type: 'email'
       });
       
       if (error) throw error;
       
-      if (data && data.valid) {
-        // OTP verified successfully
+      if (data.user) {
+        // OTP verified successfully, proceed with the operation
         onSuccess({
           valid: true,
           operation_type: operationType,
@@ -78,7 +74,7 @@ export function OTPVerification({ operationType, targetData, onSuccess, onCancel
           message: 'OTP verified successfully'
         });
       } else {
-        setError('Invalid or expired OTP code');
+        setError('Invalid OTP code');
       }
       
     } catch (err: any) {
@@ -137,10 +133,10 @@ export function OTPVerification({ operationType, targetData, onSuccess, onCancel
                   <Mail className="h-5 w-5 text-green-600 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-green-800">
-                      Verification Code Generated
+                      Verification Email Sent
                     </p>
                     <p className="text-sm text-green-700 mt-1">
-                      Check the console or alert for your 6-digit verification code (development mode).
+                      Check your email ({profile?.email}) for the 6-digit verification code.
                     </p>
                   </div>
                 </div>
@@ -201,7 +197,7 @@ export function OTPVerification({ operationType, targetData, onSuccess, onCancel
 
             <div className="text-center">
               <p className="text-sm text-gray-500">
-                In development mode, the OTP code is shown in an alert dialog.
+                Didn't receive the email? Check your spam folder or click resend.
               </p>
             </div>
           </div>
