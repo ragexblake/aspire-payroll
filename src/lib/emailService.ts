@@ -10,11 +10,21 @@ export interface EmailOptions {
 export class EmailService {
   private static instance: EmailService;
   private resend: Resend | null = null;
+  private isConfigured: boolean = false;
   
   constructor() {
     const apiKey = import.meta.env.VITE_RESEND_API_KEY;
-    if (apiKey && apiKey !== 'your_resend_api_key_here') {
+    console.log('🔧 Resend API Key check:', apiKey ? 'Present' : 'Missing');
+    
+    if (apiKey && apiKey !== 'your_resend_api_key_here' && apiKey.startsWith('re_')) {
       this.resend = new Resend(apiKey);
+      this.isConfigured = true;
+      console.log('✅ Resend configured successfully');
+    } else {
+      console.log('⚠️ Resend not configured - using development mode');
+      if (apiKey && !apiKey.startsWith('re_')) {
+        console.error('❌ Invalid Resend API key format. Should start with "re_"');
+      }
     }
   }
   
@@ -28,7 +38,7 @@ export class EmailService {
   async sendOTPEmail(adminEmail: string, otpCode: string, operationType: string): Promise<boolean> {
     const operationText = this.getOperationText(operationType);
     
-    if (!this.resend) {
+    if (!this.isConfigured || !this.resend) {
       console.log('🔧 Development Mode: Resend not configured');
       console.log(`📧 Would send OTP email to: ${adminEmail}`);
       console.log(`🔐 OTP Code: ${otpCode}`);
@@ -40,8 +50,12 @@ export class EmailService {
     }
 
     try {
+      console.log('📤 Attempting to send email via Resend...');
+      console.log(`📧 To: ${adminEmail}`);
+      console.log(`🔐 OTP: ${otpCode}`);
+      
       const { data, error } = await this.resend.emails.send({
-        from: 'PayrollPro <noreply@yourdomain.com>', // Replace with your verified domain
+        from: 'PayrollPro <onboarding@resend.dev>', // Using Resend's test domain
         to: [adminEmail],
         subject: `PayrollPro - Verification Required: ${operationText}`,
         html: this.generateOTPEmailHTML(otpCode, operationText, adminEmail),
@@ -50,17 +64,20 @@ export class EmailService {
 
       if (error) {
         console.error('❌ Resend email error:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
         // Fallback to development mode
-        alert(`Email failed, showing OTP: ${otpCode}\n\nOperation: ${operationText}`);
+        alert(`Email failed (${error.message || 'Unknown error'}), showing OTP: ${otpCode}\n\nOperation: ${operationText}`);
         return true;
       }
 
       console.log('✅ OTP email sent successfully via Resend:', data?.id);
+      console.log('📬 Email should arrive shortly at:', adminEmail);
       return true;
     } catch (error) {
       console.error('❌ Failed to send OTP email:', error);
+      console.error('Catch error details:', error);
       // Fallback to development mode
-      alert(`Email failed, showing OTP: ${otpCode}\n\nOperation: ${operationText}`);
+      alert(`Email failed (Network/API error), showing OTP: ${otpCode}\n\nOperation: ${operationText}`);
       return true;
     }
   }
