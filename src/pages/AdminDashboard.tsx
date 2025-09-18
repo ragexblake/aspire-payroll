@@ -672,6 +672,163 @@ export function AdminDashboard() {
         </div>
       )}
 
+      {/* Password Reset Modal */}
+      {showPasswordResetModal && selectedManagerForPasswordReset && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full mx-4 p-4 lg:p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base lg:text-lg font-semibold text-gray-900">Reset Manager Password</h3>
+              <button
+                onClick={() => {
+                  setShowPasswordResetModal(false);
+                  setSelectedManagerForPasswordReset(null);
+                  setNewPassword('');
+                  setConfirmNewPassword('');
+                  setOtpSent(false);
+                  setOtpVerified(false);
+                  setPasswordResetError('');
+                  setPasswordResetSuccess('');
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {/* Manager Info */}
+            <div className="mb-6 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Users className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">{selectedManagerForPasswordReset.full_name}</h4>
+                  <p className="text-sm text-gray-500">{selectedManagerForPasswordReset.email}</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Step 1: Password Input */}
+            {!otpSent && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter new password"
+                      minLength={6}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="password"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Confirm new password"
+                      minLength={6}
+                    />
+                  </div>
+                </div>
+                
+                <button
+                  onClick={handleSendOTPForPasswordReset}
+                  disabled={passwordResetLoading || !newPassword || !confirmNewPassword}
+                  className="w-full flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {passwordResetLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Sending OTP...</span>
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="h-4 w-4" />
+                      <span>Send OTP to Manager</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+            
+            {/* Step 2: OTP Verification */}
+            {otpSent && !otpVerified && (
+              <OTPVerification
+                onVerify={handleVerifyOTPForPasswordReset}
+                onResend={handleSendOTPForPasswordReset}
+                loading={passwordResetLoading}
+                error={passwordResetError}
+                success={passwordResetSuccess}
+              />
+            )}
+            
+            {/* Step 3: Confirm Reset */}
+            {otpVerified && (
+              <div className="text-center space-y-4">
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <div className="flex justify-center mb-2">
+                    <div className="p-2 bg-green-100 rounded-full">
+                      <KeyRound className="h-6 w-6 text-green-600" />
+                    </div>
+                  </div>
+                  <h4 className="font-medium text-green-900 mb-1">OTP Verified Successfully</h4>
+                  <p className="text-sm text-green-700">Ready to reset the manager's password</p>
+                </div>
+                
+                <button
+                  onClick={handleResetManagerPassword}
+                  disabled={passwordResetLoading}
+                  className="w-full flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {passwordResetLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Resetting Password...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4" />
+                      <span>Reset Password</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+            
+            {/* Error/Success Messages */}
+            {passwordResetError && (
+              <div className="mt-4 text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
+                {passwordResetError}
+              </div>
+            )}
+            
+            {passwordResetSuccess && !otpVerified && (
+              <div className="mt-4 text-green-600 text-sm bg-green-50 p-3 rounded-lg border border-green-200">
+                {passwordResetSuccess}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
