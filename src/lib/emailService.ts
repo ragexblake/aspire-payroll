@@ -65,7 +65,15 @@ export class EmailService {
       if (error) {
         console.error('❌ Resend email error:', error);
         console.error('Error details:', JSON.stringify(error, null, 2));
-        // Fallback to development mode
+        
+        // Check if it's a network/API key issue
+        if (error.message?.includes('Unable to fetch') || error.name === 'application_error') {
+          console.log('🔧 Network/API error detected, falling back to development mode');
+          alert(`Email service unavailable - OTP Code: ${otpCode}\n\nOperation: ${operationText}\nEmail: ${adminEmail}`);
+          return true;
+        }
+        
+        // For other errors, still fallback but show different message
         alert(`Email failed (${error.message || 'Unknown error'}), showing OTP: ${otpCode}\n\nOperation: ${operationText}`);
         return true;
       }
@@ -75,9 +83,17 @@ export class EmailService {
       return true;
     } catch (error) {
       console.error('❌ Failed to send OTP email:', error);
+      
+      // Check if it's a network connectivity issue
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.log('🔧 Network connectivity issue, falling back to development mode');
+        alert(`Network error - OTP Code: ${otpCode}\n\nOperation: ${operationText}\nEmail: ${adminEmail}`);
+        return true;
+      }
+      
+      // Generic fallback for any other errors
       console.error('Catch error details:', error);
-      // Fallback to development mode
-      alert(`Email failed (Network/API error), showing OTP: ${otpCode}\n\nOperation: ${operationText}`);
+      alert(`Email service error - OTP Code: ${otpCode}\n\nOperation: ${operationText}\nEmail: ${adminEmail}`);
       return true;
     }
   }
