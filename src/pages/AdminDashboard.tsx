@@ -253,36 +253,6 @@ export function AdminDashboard() {
     }
   };
 
-  const handleDeleteManager = async (managerId: string) => {
-    await executeDeleteManager(managerId);
-  };
-
-  const executeDeleteManager = async (managerId: string) => {
-    try {
-      if (profile && isDemoUser(profile.id)) {
-        // Delete from demo data
-        const updatedManagers = managers.filter(m => m.id !== managerId);
-        setDemoManagers(updatedManagers);
-        setManagers(updatedManagers);
-
-        // Also remove from demo users
-        const existingUsers = JSON.parse(localStorage.getItem('demoUsers') || '[]');
-        const updatedUsers = existingUsers.filter((user: any) => user.id !== managerId);
-        localStorage.setItem('demoUsers', JSON.stringify(updatedUsers));
-      } else {
-        // Delete from Supabase
-        const { error } = await supabase
-          .from('user_profiles')
-          .delete()
-          .eq('id', managerId);
-
-        if (error) throw error;
-        setManagers(managers.filter(m => m.id !== managerId));
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete manager');
-    }
-  };
 
   const getPlantName = (plantId: string) => {
     return plants.find(p => p.id === plantId)?.name || 'Unknown Plant';
@@ -484,13 +454,6 @@ export function AdminDashboard() {
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDeleteManager(manager.id)}
-                  className="p-2 text-red-600 hover:text-red-800"
-                  title="Delete Manager"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
               </div>
             ))}
           </div>
