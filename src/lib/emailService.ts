@@ -1,5 +1,3 @@
-import { Resend } from 'resend';
-
 // Email service for OTP delivery
 // In production, integrate with services like SendGrid, AWS SES, or Resend
 
@@ -22,27 +20,6 @@ export class EmailService {
 
   async sendOTPEmail(adminEmail: string, otpCode: string, operationType: string): Promise<boolean> {
     try {
-      // Check if Resend API key is configured
-      const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
-      
-      if (resendApiKey && resendApiKey !== 'your_resend_api_key_here') {
-        // Use Resend to send actual email
-        const emailSent = await this.sendWithResend({
-          to: adminEmail,
-          subject: `OTP Verification Required - ${operationType === 'add_manager' ? 'Add Manager' : 'Delete Manager'}`,
-          html: this.generateOTPEmailHTML(otpCode, operationType),
-          text: this.generateOTPEmailText(otpCode, operationType)
-        });
-        
-        if (emailSent) {
-          console.log('✅ OTP email sent successfully via Resend to:', adminEmail);
-          return true;
-        } else {
-          throw new Error('Failed to send email via Resend');
-        }
-      }
-      
-      // Fallback to development mode (alert dialog)
       const subject = `OTP Verification Required - ${operationType === 'add_manager' ? 'Add Manager' : 'Delete Manager'}`;
       
       const html = this.generateOTPEmailHTML(otpCode, operationType);
@@ -66,7 +43,12 @@ export class EmailService {
       // Show OTP in alert for development/demo purposes
       alert(`OTP Code: ${otpCode}\n\nEmail: ${adminEmail}\nOperation: ${operationType}\n\nThis would normally be sent via email.`);
 
-      console.log('📧 Development mode: OTP shown in alert dialog');
+      // For demo purposes, we'll simulate a successful send
+      // In production, integrate with your preferred email service:
+      // - SendGrid: await this.sendWithSendGrid(emailOptions);
+      // - AWS SES: await this.sendWithSES(emailOptions);
+      // - Resend: await this.sendWithResend(emailOptions);
+      
       return true;
     } catch (error) {
       console.error('Failed to send OTP email:', error);
@@ -167,30 +149,63 @@ This is an automated message from PayrollPro. Please do not reply to this email.
     `.trim();
   }
 
-  private async sendWithResend(options: EmailOptions): Promise<boolean> {
-    try {
-      const resend = new Resend(import.meta.env.VITE_RESEND_API_KEY);
-      
-      const { data, error } = await resend.emails.send({
-        from: 'PayrollPro <noreply@yourdomain.com>', // Replace with your verified domain
-        to: [options.to],
-        subject: options.subject,
-        html: options.html,
-        text: options.text
-      });
-      
-      if (error) {
-        console.error('Resend API error:', error);
-        return false;
-      }
-      
-      console.log('Resend email sent successfully:', data);
-      return true;
-    } catch (error) {
-      console.error('Failed to send email with Resend:', error);
-      return false;
-    }
+  // Example integration methods (uncomment and implement as needed):
+
+  /*
+  private async sendWithSendGrid(options: EmailOptions): Promise<boolean> {
+    // SendGrid integration
+    const sgMail = require('@sendgrid/mail');
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    
+    const msg = {
+      to: options.to,
+      from: process.env.FROM_EMAIL,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
+    };
+    
+    await sgMail.send(msg);
+    return true;
   }
+
+  private async sendWithSES(options: EmailOptions): Promise<boolean> {
+    // AWS SES integration
+    const AWS = require('aws-sdk');
+    const ses = new AWS.SES({ region: process.env.AWS_REGION });
+    
+    const params = {
+      Destination: { ToAddresses: [options.to] },
+      Message: {
+        Body: {
+          Html: { Data: options.html },
+          Text: { Data: options.text || '' }
+        },
+        Subject: { Data: options.subject }
+      },
+      Source: process.env.FROM_EMAIL
+    };
+    
+    await ses.sendEmail(params).promise();
+    return true;
+  }
+
+  private async sendWithResend(options: EmailOptions): Promise<boolean> {
+    // Resend integration
+    const { Resend } = require('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text
+    });
+    
+    return true;
+  }
+  */
 }
 
 // Export singleton instance
