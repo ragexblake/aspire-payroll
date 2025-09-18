@@ -51,6 +51,137 @@ const setDemoEmployees = (employees: Employee[]) => {
   }
 };
 
+const initializeSampleData = (managerId: string, plantId: string) => {
+  const existingEmployees = getDemoEmployees(managerId);
+  
+  // Only add sample data if no employees exist for this manager
+  if (existingEmployees.length === 0) {
+    const sampleEmployees: Employee[] = [
+      {
+        id: `emp-${Date.now()}-1`,
+        employee_id: 'EMP001',
+        full_name: 'John Smith',
+        email: 'john.smith@company.com',
+        phone: '(555) 123-4567',
+        department: 'Production',
+        position: 'Production Supervisor',
+        hire_date: '2023-01-15',
+        salary: 65000,
+        plant_id: plantId,
+        manager_id: managerId,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: `emp-${Date.now()}-2`,
+        employee_id: 'EMP002',
+        full_name: 'Sarah Johnson',
+        email: 'sarah.johnson@company.com',
+        phone: '(555) 234-5678',
+        department: 'Quality Control',
+        position: 'QC Inspector',
+        hire_date: '2023-03-20',
+        salary: 55000,
+        plant_id: plantId,
+        manager_id: managerId,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: `emp-${Date.now()}-3`,
+        employee_id: 'EMP003',
+        full_name: 'Michael Brown',
+        email: 'michael.brown@company.com',
+        phone: '(555) 345-6789',
+        department: 'Production',
+        position: 'Machine Operator',
+        hire_date: '2023-02-10',
+        salary: 45000,
+        plant_id: plantId,
+        manager_id: managerId,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: `emp-${Date.now()}-4`,
+        employee_id: 'EMP004',
+        full_name: 'Emily Davis',
+        email: 'emily.davis@company.com',
+        phone: '(555) 456-7890',
+        department: 'Maintenance',
+        position: 'Maintenance Technician',
+        hire_date: '2023-04-05',
+        salary: 52000,
+        plant_id: plantId,
+        manager_id: managerId,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: `emp-${Date.now()}-5`,
+        employee_id: 'EMP005',
+        full_name: 'Robert Wilson',
+        email: 'robert.wilson@company.com',
+        phone: '(555) 567-8901',
+        department: 'Quality Control',
+        position: 'QC Manager',
+        hire_date: '2022-11-15',
+        salary: 72000,
+        plant_id: plantId,
+        manager_id: managerId,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: `emp-${Date.now()}-6`,
+        employee_id: 'EMP006',
+        full_name: 'Lisa Anderson',
+        email: 'lisa.anderson@company.com',
+        phone: '(555) 678-9012',
+        department: 'Production',
+        position: 'Assembly Worker',
+        hire_date: '2023-05-12',
+        salary: 42000,
+        plant_id: plantId,
+        manager_id: managerId,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: `emp-${Date.now()}-7`,
+        employee_id: 'EMP007',
+        full_name: 'David Martinez',
+        email: 'david.martinez@company.com',
+        phone: '(555) 789-0123',
+        department: 'Maintenance',
+        position: 'Electrical Technician',
+        hire_date: '2023-01-30',
+        salary: 58000,
+        plant_id: plantId,
+        manager_id: managerId,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: `emp-${Date.now()}-8`,
+        employee_id: 'EMP008',
+        full_name: 'Jennifer Taylor',
+        email: 'jennifer.taylor@company.com',
+        phone: '(555) 890-1234',
+        department: 'Production',
+        position: 'Line Lead',
+        hire_date: '2022-12-08',
+        salary: 48000,
+        plant_id: plantId,
+        manager_id: managerId,
+        created_at: new Date().toISOString()
+      }
+    ];
+    
+    // Add sample employees to localStorage
+    const existingAllEmployees = JSON.parse(localStorage.getItem('demoEmployees') || '[]');
+    const updatedAllEmployees = [...existingAllEmployees, ...sampleEmployees];
+    localStorage.setItem('demoEmployees', JSON.stringify(updatedAllEmployees));
+    
+    return sampleEmployees;
+  }
+  
+  return existingEmployees;
+};
+
 const addDemoEmployee = (employee: Employee) => {
   try {
     const existingEmployees = JSON.parse(localStorage.getItem('demoEmployees') || '[]');
@@ -99,8 +230,8 @@ export function ManagerDashboard() {
         const managerPlant = demoPlants.find((p: Plant) => p.id === profile.plant_id);
         setPlant(managerPlant || null);
         
-        // Get employees imported by this manager
-        const managerEmployees = getDemoEmployees(profile.id);
+        // Initialize sample data if needed, then get employees
+        const managerEmployees = initializeSampleData(profile.id, profile.plant_id);
         setEmployees(managerEmployees);
       } else {
         // Fetch plant data from Supabase
