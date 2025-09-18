@@ -82,7 +82,7 @@ export class EmailService {
         console.log('Resend API Key (first 10 chars):', import.meta.env.VITE_RESEND_API_KEY?.substring(0, 10) + '...');
         
         const emailData = {
-          from: 'PayrollPro <noreply@payrollpro.com>',
+          from: 'onboarding@resend.dev',
           to: [adminEmail],
           subject: 'Password Reset OTP - PayrollPro',
           html: `

@@ -272,7 +272,7 @@ export function AdminDashboard() {
       
       if (result.success) {
         setOtpSent(true);
-        setPasswordResetSuccess('OTP has been sent to the manager\'s email address');
+        setPasswordResetSuccess(`OTP has been sent to your admin email: ${profile.email}`);
       } else {
         console.error('OTP sending failed:', result.error);
         setPasswordResetError(result.error || 'Failed to send OTP');
