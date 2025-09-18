@@ -40,6 +40,9 @@ export class EmailService {
         otpCode: otpCode
       });
 
+      // Show OTP in alert for development/demo purposes
+      alert(`OTP Code: ${otpCode}\n\nEmail: ${adminEmail}\nOperation: ${operationType}\n\nThis would normally be sent via email.`);
+
       // For demo purposes, we'll simulate a successful send
       // In production, integrate with your preferred email service:
       // - SendGrid: await this.sendWithSendGrid(emailOptions);

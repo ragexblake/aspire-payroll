@@ -57,9 +57,6 @@ export function OTPVerification({ operationType, targetData, onSuccess, onCancel
           setOtpSent(false);
           return;
         }
-      } else {
-        // Fallback: show OTP in alert if no email available
-        alert(`OTP Code: ${data}\n\nEmail not available - showing OTP here for demo purposes.`);
       }
       
     } catch (err: any) {
