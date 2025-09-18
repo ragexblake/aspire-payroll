@@ -15,7 +15,6 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Erro
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Sentry will also capture via its React integration when initialized
     console.error('Uncaught error:', error, errorInfo);
   }
 
