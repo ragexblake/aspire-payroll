@@ -23,7 +23,7 @@ export class EmailService {
   }
 
   static async sendOTPEmail(
-    managerEmail: string,
+    adminEmail: string,
     managerId: string,
     adminId: string,
     operationType: string = 'password_reset'
@@ -43,7 +43,7 @@ export class EmailService {
           admin_id: adminId,
           otp_code: otp,
           operation_type: operationType,
-          target_data: { manager_id: managerId, manager_email: managerEmail },
+          target_data: { manager_id: managerId, admin_email: adminEmail },
           expires_at: expiresAt.toISOString(),
           used: false
         });
@@ -65,21 +65,22 @@ export class EmailService {
 
       try {
         console.log('Attempting to send OTP email to:', managerEmail);
+        console.log('Attempting to send OTP email to:', adminEmail);
         await resendClient.emails.send({
           from: 'PayrollPro <noreply@payrollpro.com>',
-          to: [managerEmail],
+          to: [adminEmail],
           subject: 'Password Reset OTP - PayrollPro',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #2563eb;">Password Reset Request</h2>
               <p>Hello,</p>
-              <p>Your administrator has initiated a password reset for your PayrollPro account.</p>
+              <p>You have initiated a password reset for a manager's PayrollPro account.</p>
               <p>Your One-Time Password (OTP) is:</p>
               <div style="background-color: #f3f4f6; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
                 <span style="font-size: 32px; font-weight: bold; color: #1f2937; letter-spacing: 4px;">${otp}</span>
               </div>
               <p><strong>This OTP will expire in 10 minutes.</strong></p>
-              <p>If you did not request this password reset, please contact your administrator immediately.</p>
+              <p>Use this OTP to complete the password reset process in the admin dashboard.</p>
               <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
               <p style="color: #6b7280; font-size: 14px;">
                 This is an automated message from PayrollPro. Please do not reply to this email.
@@ -88,7 +89,7 @@ export class EmailService {
           `
         });
 
-        console.log('OTP email sent successfully to:', managerEmail);
+        console.log('OTP email sent successfully to:', adminEmail);
         return { success: true };
       } catch (emailError: any) {
         console.error('Failed to send email via Resend:', emailError);

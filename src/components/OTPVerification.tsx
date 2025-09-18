@@ -41,7 +41,7 @@ export function OTPVerification({ onVerify, onResend, loading = false, error, su
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Enter OTP</h3>
         <p className="text-sm text-gray-600">
-          A 6-digit code has been sent to the manager's email address.
+          A 6-digit code has been sent to your admin email address.
         </p>
       </div>
 

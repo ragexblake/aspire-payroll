@@ -265,7 +265,7 @@ export function AdminDashboard() {
       setPasswordResetSuccess('');
       
       const result = await EmailService.sendOTPEmail(
-        selectedManagerForPasswordReset.email,
+        profile.email,
         selectedManagerForPasswordReset.id,
         profile.id
       );
