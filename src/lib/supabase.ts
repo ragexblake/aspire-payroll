@@ -61,6 +61,50 @@ export type Database = {
           created_at?: string;
         };
       };
+      employees: {
+        Row: {
+          id: string;
+          employee_id: string;
+          full_name: string;
+          email: string | null;
+          phone: string | null;
+          department: string | null;
+          position: string | null;
+          hire_date: string | null;
+          salary: number | null;
+          plant_id: string;
+          manager_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          full_name: string;
+          email?: string | null;
+          phone?: string | null;
+          department?: string | null;
+          position?: string | null;
+          hire_date?: string | null;
+          salary?: number | null;
+          plant_id: string;
+          manager_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          full_name?: string;
+          email?: string | null;
+          phone?: string | null;
+          department?: string | null;
+          position?: string | null;
+          hire_date?: string | null;
+          salary?: number | null;
+          plant_id?: string;
+          manager_id?: string;
+          created_at?: string;
+        };
+      };
     };
   };
 };
