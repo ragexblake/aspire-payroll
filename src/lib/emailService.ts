@@ -64,7 +64,7 @@ export class EmailService {
       }
 
       try {
-        console.log('Attempting to send OTP email to:', managerEmail);
+        console.log('Attempting to send OTP email to:', adminEmail);
         console.log('Attempting to send OTP email to:', adminEmail);
         await resendClient.emails.send({
           from: 'PayrollPro <noreply@payrollpro.com>',
