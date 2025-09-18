@@ -9,7 +9,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeSection, onSectionChange, isOpen, onClose, title = 'Admin Panel' }: SidebarProps) {
-  const menuItems = [
+  const adminMenuItems = [
     {
       id: 'dashboard',
       label: 'Dashboard',
@@ -41,6 +41,23 @@ export function Sidebar({ activeSection, onSectionChange, isOpen, onClose, title
       description: 'View employee information'
     }
   ];
+
+  const managerMenuItems = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: BarChart3,
+      description: 'Plant overview & stats'
+    },
+    {
+      id: 'employees',
+      label: 'Employees',
+      icon: Users,
+      description: 'Manage your employees'
+    }
+  ];
+
+  const menuItems = title === 'Manager Panel' ? managerMenuItems : adminMenuItems;
 
   return (
     <>

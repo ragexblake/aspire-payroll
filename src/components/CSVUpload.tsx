@@ -104,14 +104,29 @@ export function CSVUpload({ onSuccess, onError }: CSVUploadProps) {
         salary: emp.salary ? parseFloat(emp.salary) : null,
         plant_id: profile.plant_id,
         manager_id: profile.id,
-        created_by: profile.id
+        created_at: new Date().toISOString()
       }));
       
-      const { error } = await supabase
-        .from('employees')
-        .insert(employeeRecords);
+      // Check if this is a demo user
+      const isDemoUser = profile.id.startsWith('demo-');
       
-      if (error) throw error;
+      if (isDemoUser) {
+        // Save to localStorage for demo users
+        const existingEmployees = JSON.parse(localStorage.getItem('demoEmployees') || '[]');
+        const newEmployees = employeeRecords.map(emp => ({
+          ...emp,
+          id: `emp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        }));
+        const updatedEmployees = [...existingEmployees, ...newEmployees];
+        localStorage.setItem('demoEmployees', JSON.stringify(updatedEmployees));
+      } else {
+        // Save to Supabase for real users
+        const { error } = await supabase
+          .from('employees')
+          .insert(employeeRecords);
+        
+        if (error) throw error;
+      }
       
       onSuccess?.();
       setFile(null);
