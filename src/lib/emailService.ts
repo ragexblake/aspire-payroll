@@ -7,7 +7,8 @@ export class EmailService {
   private static getResendClient(): Resend | null {
     const apiKey = import.meta.env.VITE_RESEND_API_KEY;
     
-    console.log('Checking Resend API key:', apiKey ? 'Present' : 'Missing');
+    console.log('Checking Resend API key:', apiKey ? `Present (${apiKey.length} chars)` : 'Missing');
+    console.log('API Key starts with "re_":', apiKey?.startsWith('re_') ? 'Yes' : 'No');
     
     if (!apiKey || apiKey === 'your_resend_api_key_here') {
       console.warn('Resend API key not configured');
@@ -16,6 +17,7 @@ export class EmailService {
 
     if (!this.resend) {
       console.log('Creating new Resend client');
+      console.log('Using API key:', apiKey.substring(0, 10) + '...');
       this.resend = new Resend(apiKey);
     }
 
@@ -29,14 +31,23 @@ export class EmailService {
     operationType: string = 'password_reset'
   ): Promise<{ success: boolean; error?: string }> {
     try {
+      console.log('=== OTP EMAIL SENDING DEBUG ===');
+      console.log('Admin email (recipient):', adminEmail);
+      console.log('Manager ID:', managerId);
+      console.log('Admin ID:', adminId);
+      console.log('Operation type:', operationType);
+      
       // Generate 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      console.log('Generated OTP:', otp);
       
       // Set expiration time (10 minutes from now)
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+      console.log('OTP expires at:', expiresAt.toISOString());
 
       // Store OTP in Supabase
+      console.log('Storing OTP in database...');
       const { error: dbError } = await supabase
         .from('otp_codes')
         .insert({
@@ -49,6 +60,7 @@ export class EmailService {
         });
 
       if (dbError) {
+        console.error('Database error storing OTP:', dbError);
         console.error('Failed to store OTP in database:', dbError);
         return { success: false, error: 'Failed to generate OTP. Please try again.' };
       }
@@ -56,6 +68,7 @@ export class EmailService {
       // Try to send email via Resend
       const resendClient = this.getResendClient();
       
+      console.log('Resend client available:', !!resendClient);
       if (!resendClient) {
         return { 
           success: false, 
@@ -66,7 +79,9 @@ export class EmailService {
       try {
         console.log('Attempting to send OTP email to:', adminEmail);
         console.log('Attempting to send OTP email to:', adminEmail);
-        await resendClient.emails.send({
+        console.log('Resend API Key (first 10 chars):', import.meta.env.VITE_RESEND_API_KEY?.substring(0, 10) + '...');
+        
+        const emailData = {
           from: 'PayrollPro <noreply@payrollpro.com>',
           to: [adminEmail],
           subject: 'Password Reset OTP - PayrollPro',
@@ -87,7 +102,12 @@ export class EmailService {
               </p>
             </div>
           `
-        });
+        };
+        
+        console.log('Email data being sent:', emailData);
+        
+        const result = await resendClient.emails.send(emailData);
+        console.log('Resend API response:', result);
 
         console.log('OTP email sent successfully to:', adminEmail);
         return { success: true };
@@ -100,6 +120,7 @@ export class EmailService {
         };
       }
     } catch (error: any) {
+      console.error('Unexpected error in sendOTPEmail:', error);
       console.error('Error in sendOTPEmail:', error);
       return { 
         success: false, 
