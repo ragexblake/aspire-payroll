@@ -7,7 +7,6 @@ import { ProfileSettings } from '../components/ProfileSettings';
 import { EmployeeData } from '../components/EmployeeData';
 import { DashboardOverview } from '../components/DashboardOverview';
 import { EmployeeManagement } from '../components/EmployeeManagement';
-import { OTPVerification } from '../components/OTPVerification';
 import { Building2, MapPin, Users, TrendingUp, Plus, UserPlus, Edit, Trash2, X } from 'lucide-react';
 
 interface Plant {
@@ -65,9 +64,6 @@ export function AdminDashboard() {
   const [showAddPlant, setShowAddPlant] = useState(false);
   const [showAddManager, setShowAddManager] = useState(false);
   const [selectedPlantId, setSelectedPlantId] = useState('');
-  const [showOTPVerification, setShowOTPVerification] = useState(false);
-  const [otpOperation, setOtpOperation] = useState<'add_manager' | 'delete_manager'>('add_manager');
-  const [otpTargetData, setOtpTargetData] = useState<any>(null);
 
   // Form states
   const [plantForm, setPlantForm] = useState({ name: '', location: '' });
@@ -161,25 +157,12 @@ export function AdminDashboard() {
     e.preventDefault();
     if (!managerForm.full_name || !managerForm.email || !managerForm.password || !managerForm.plant_id) return;
 
-    // Set up OTP verification for adding manager
-    setOtpOperation('add_manager');
-    setOtpTargetData({
+    await executeAddManager({
       full_name: managerForm.full_name,
       email: managerForm.email,
       plant_id: managerForm.plant_id,
       password: managerForm.password
     });
-    setShowOTPVerification(true);
-  };
-
-  const handleOTPSuccess = async (result: any) => {
-    if (result.operation_type === 'add_manager') {
-      await executeAddManager(result.target_data);
-    } else if (result.operation_type === 'delete_manager') {
-      await executeDeleteManager(result.target_data.manager_id);
-    }
-    setShowOTPVerification(false);
-    setOtpTargetData(null);
   };
 
   const executeAddManager = async (managerData: any) => {
@@ -271,10 +254,7 @@ export function AdminDashboard() {
   };
 
   const handleDeleteManager = async (managerId: string) => {
-    // Set up OTP verification for deleting manager
-    setOtpOperation('delete_manager');
-    setOtpTargetData({ manager_id: managerId });
-    setShowOTPVerification(true);
+    await executeDeleteManager(managerId);
   };
 
   const executeDeleteManager = async (managerId: string) => {
@@ -748,18 +728,6 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {/* OTP Verification Modal */}
-      {showOTPVerification && (
-        <OTPVerification
-          operationType={otpOperation}
-          targetData={otpTargetData}
-          onSuccess={handleOTPSuccess}
-          onCancel={() => {
-            setShowOTPVerification(false);
-            setOtpTargetData(null);
-          }}
-        />
-      )}
     </div>
   );
 }
