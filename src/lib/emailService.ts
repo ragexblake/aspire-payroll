@@ -7,12 +7,15 @@ export class EmailService {
   private static getResendClient(): Resend | null {
     const apiKey = import.meta.env.VITE_RESEND_API_KEY;
     
+    console.log('Checking Resend API key:', apiKey ? 'Present' : 'Missing');
+    
     if (!apiKey || apiKey === 'your_resend_api_key_here') {
       console.warn('Resend API key not configured');
       return null;
     }
 
     if (!this.resend) {
+      console.log('Creating new Resend client');
       this.resend = new Resend(apiKey);
     }
 
@@ -22,7 +25,8 @@ export class EmailService {
   static async sendOTPEmail(
     managerEmail: string,
     managerId: string,
-    adminId: string
+    adminId: string,
+    operationType: string = 'password_reset'
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Generate 6-digit OTP
@@ -38,7 +42,7 @@ export class EmailService {
         .insert({
           admin_id: adminId,
           otp_code: otp,
-          operation_type: 'password_reset',
+          operation_type: operationType,
           target_data: { manager_id: managerId, manager_email: managerEmail },
           expires_at: expiresAt.toISOString(),
           used: false
@@ -55,11 +59,12 @@ export class EmailService {
       if (!resendClient) {
         return { 
           success: false, 
-          error: 'Email service not configured. Please contact your system administrator.' 
+          error: 'Email service not configured. Please add VITE_RESEND_API_KEY to your .env file.' 
         };
       }
 
       try {
+        console.log('Attempting to send OTP email to:', managerEmail);
         await resendClient.emails.send({
           from: 'PayrollPro <noreply@payrollpro.com>',
           to: [managerEmail],
@@ -83,12 +88,14 @@ export class EmailService {
           `
         });
 
+        console.log('OTP email sent successfully to:', managerEmail);
         return { success: true };
       } catch (emailError: any) {
         console.error('Failed to send email via Resend:', emailError);
+        console.error('Resend error details:', emailError.message, emailError.response?.data);
         return { 
           success: false, 
-          error: 'Failed to send OTP email. Please check the email address and try again.' 
+          error: `Failed to send OTP email: ${emailError.message || 'Unknown error'}. Please check the email address and try again.` 
         };
       }
     } catch (error: any) {

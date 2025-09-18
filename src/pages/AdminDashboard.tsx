@@ -267,14 +267,14 @@ export function AdminDashboard() {
       const result = await EmailService.sendOTPEmail(
         selectedManagerForPasswordReset.email,
         selectedManagerForPasswordReset.id,
-        profile.id,
-        'password_reset'
+        profile.id
       );
       
       if (result.success) {
         setOtpSent(true);
         setPasswordResetSuccess('OTP has been sent to the manager\'s email address');
       } else {
+        console.error('OTP sending failed:', result.error);
         setPasswordResetError(result.error || 'Failed to send OTP');
       }
     } catch (err: any) {
