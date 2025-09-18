@@ -240,6 +240,145 @@ export function AdminDashboard() {
     }
   };
 
+  const handleSendOTPForPasswordReset = async () => {
+    if (!selectedManagerForPasswordReset || !profile) return;
+    
+    // Validate passwords
+    if (!newPassword || !confirmNewPassword) {
+      setPasswordResetError('Please enter both password fields');
+      return;
+    }
+    
+    if (newPassword !== confirmNewPassword) {
+      setPasswordResetError('Passwords do not match');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      setPasswordResetError('Password must be at least 6 characters long');
+      return;
+    }
+    
+    try {
+      setPasswordResetLoading(true);
+      setPasswordResetError('');
+      setPasswordResetSuccess('');
+      
+      const result = await EmailService.sendOTPEmail(
+        selectedManagerForPasswordReset.email,
+        selectedManagerForPasswordReset.id,
+        profile.id,
+        'password_reset'
+      );
+      
+      if (result.success) {
+        setOtpSent(true);
+        setPasswordResetSuccess('OTP has been sent to the manager\'s email address');
+      } else {
+        setPasswordResetError(result.error || 'Failed to send OTP');
+      }
+    } catch (err: any) {
+      setPasswordResetError(err.message || 'Failed to send OTP');
+    } finally {
+      setPasswordResetLoading(false);
+    }
+  };
+
+  const handleVerifyOTPForPasswordReset = async (otp: string) => {
+    if (!selectedManagerForPasswordReset || !profile) return;
+    
+    try {
+      setPasswordResetLoading(true);
+      setPasswordResetError('');
+      
+      // Query the otp_codes table to verify the OTP
+      const { data: otpData, error: otpError } = await supabase
+        .from('otp_codes')
+        .select('*')
+        .eq('otp_code', otp)
+        .eq('admin_id', profile.id)
+        .eq('operation_type', 'password_reset')
+        .eq('used', false)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+      
+      if (otpError || !otpData) {
+        setPasswordResetError('Invalid or expired OTP');
+        return;
+      }
+      
+      // Check if the target_data matches the selected manager
+      const targetData = otpData.target_data as any;
+      if (targetData?.manager_id !== selectedManagerForPasswordReset.id) {
+        setPasswordResetError('Invalid OTP for this manager');
+        return;
+      }
+      
+      // Mark OTP as used
+      const { error: updateError } = await supabase
+        .from('otp_codes')
+        .update({ used: true })
+        .eq('id', otpData.id);
+      
+      if (updateError) {
+        setPasswordResetError('Failed to verify OTP');
+        return;
+      }
+      
+      setOtpVerified(true);
+      setPasswordResetSuccess('OTP verified successfully. You can now reset the password.');
+    } catch (err: any) {
+      setPasswordResetError(err.message || 'Failed to verify OTP');
+    } finally {
+      setPasswordResetLoading(false);
+    }
+  };
+
+  const handleResetManagerPassword = async () => {
+    if (!selectedManagerForPasswordReset || !newPassword) return;
+    
+    try {
+      setPasswordResetLoading(true);
+      setPasswordResetError('');
+      
+      if (profile && isDemoUser(profile.id)) {
+        // Update demo user password in localStorage
+        const existingUsers = JSON.parse(localStorage.getItem('demoUsers') || '[]');
+        const updatedUsers = existingUsers.map((user: any) => {
+          if (user.id === selectedManagerForPasswordReset.id) {
+            return { ...user, password: newPassword };
+          }
+          return user;
+        });
+        localStorage.setItem('demoUsers', JSON.stringify(updatedUsers));
+        
+        setPasswordResetSuccess('Password reset successfully for demo user');
+      } else {
+        // For Supabase users, this would require a backend service with service_role key
+        // to call supabase.auth.admin.updateUserById(managerId, { password: newPassword })
+        // For now, we'll simulate success
+        console.log('Note: Actual password reset for Supabase users requires backend service with service_role key');
+        setPasswordResetSuccess('Password reset request processed (requires backend implementation for Supabase users)');
+      }
+      
+      // Reset all state and close modal
+      setTimeout(() => {
+        setShowPasswordResetModal(false);
+        setSelectedManagerForPasswordReset(null);
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setOtpSent(false);
+        setOtpVerified(false);
+        setPasswordResetError('');
+        setPasswordResetSuccess('');
+      }, 2000);
+      
+    } catch (err: any) {
+      setPasswordResetError(err.message || 'Failed to reset password');
+    } finally {
+      setPasswordResetLoading(false);
+    }
+  };
 
 
   const getPlantName = (plantId: string) => {
