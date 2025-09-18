@@ -7,7 +7,7 @@ import { ProfileSettings } from '../components/ProfileSettings';
 import { EmployeeData } from '../components/EmployeeData';
 import { DashboardOverview } from '../components/DashboardOverview';
 import { EmployeeManagement } from '../components/EmployeeManagement';
-import { Building2, MapPin, Users, TrendingUp, Plus, UserPlus, Edit, Trash2, X } from 'lucide-react';
+import { Building2, MapPin, Users, TrendingUp, Plus, UserPlus, X } from 'lucide-react';
 
 interface Plant {
   id: string;
@@ -227,31 +227,6 @@ export function AdminDashboard() {
     }
   };
 
-  const handleDeletePlant = async (plantId: string) => {
-    try {
-      if (profile && isDemoUser(profile.id)) {
-        // Delete from demo data
-        const updatedPlants = plants.filter(p => p.id !== plantId);
-        const updatedManagers = managers.filter(m => m.plant_id !== plantId);
-        setDemoPlants(updatedPlants);
-        setDemoManagers(updatedManagers);
-        setPlants(updatedPlants);
-        setManagers(updatedManagers);
-      } else {
-        // Delete from Supabase
-        const { error } = await supabase
-          .from('plants')
-          .delete()
-          .eq('id', plantId);
-
-        if (error) throw error;
-        setPlants(plants.filter(p => p.id !== plantId));
-        setManagers(managers.filter(m => m.plant_id !== plantId));
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete plant');
-    }
-  };
 
 
   const getPlantName = (plantId: string) => {
@@ -391,13 +366,6 @@ export function AdminDashboard() {
                         title="Add Manager"
                       >
                         <UserPlus className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeletePlant(plant.id)}
-                        className="p-1 text-red-600 hover:text-red-800"
-                        title="Delete Plant"
-                      >
-                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
