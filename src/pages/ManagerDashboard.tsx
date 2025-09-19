@@ -205,10 +205,25 @@ export function ManagerDashboard() {
   const [error, setError] = useState('');
   const [showCSVUpload, setShowCSVUpload] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showAddEmployee, setShowAddEmployee] = useState(false);
   
   // Employee management states
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
+  
+  // Add employee form state
+  const [employeeForm, setEmployeeForm] = useState({
+    employee_id: '',
+    full_name: '',
+    email: '',
+    phone: '',
+    department: '',
+    position: '',
+    hire_date: '',
+    salary: ''
+  });
+  const [addEmployeeLoading, setAddEmployeeLoading] = useState(false);
+  const [addEmployeeError, setAddEmployeeError] = useState('');
 
   useEffect(() => {
     if (profile?.plant_id) {
@@ -278,6 +293,87 @@ export function ManagerDashboard() {
   const handleCSVUploadSuccess = () => {
     setShowCSVUpload(false);
     fetchData(); // Refresh employee data
+  };
+
+  const handleAddEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile?.plant_id || !profile?.id) return;
+    
+    setAddEmployeeLoading(true);
+    setAddEmployeeError('');
+    
+    try {
+      // Validate required fields
+      if (!employeeForm.employee_id || !employeeForm.full_name) {
+        throw new Error('Employee ID and Full Name are required');
+      }
+      
+      // Check for duplicate employee ID
+      const existingEmployee = employees.find(emp => emp.employee_id === employeeForm.employee_id);
+      if (existingEmployee) {
+        throw new Error('Employee ID already exists');
+      }
+      
+      const newEmployee: Employee = {
+        id: `emp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        employee_id: employeeForm.employee_id,
+        full_name: employeeForm.full_name,
+        email: employeeForm.email || null,
+        phone: employeeForm.phone || null,
+        department: employeeForm.department || null,
+        position: employeeForm.position || null,
+        hire_date: employeeForm.hire_date || null,
+        salary: employeeForm.salary ? parseFloat(employeeForm.salary) : null,
+        plant_id: profile.plant_id,
+        manager_id: profile.id,
+        created_at: new Date().toISOString()
+      };
+      
+      if (isDemoUser(profile.id)) {
+        // Save to localStorage for demo users
+        addDemoEmployee(newEmployee);
+        setEmployees([newEmployee, ...employees]);
+      } else {
+        // Save to Supabase for real users
+        const { data, error } = await supabase
+          .from('employees')
+          .insert({
+            employee_id: newEmployee.employee_id,
+            full_name: newEmployee.full_name,
+            email: newEmployee.email,
+            phone: newEmployee.phone,
+            department: newEmployee.department,
+            position: newEmployee.position,
+            hire_date: newEmployee.hire_date,
+            salary: newEmployee.salary,
+            plant_id: newEmployee.plant_id,
+            manager_id: newEmployee.manager_id
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        setEmployees([data, ...employees]);
+      }
+      
+      // Reset form and close modal
+      setEmployeeForm({
+        employee_id: '',
+        full_name: '',
+        email: '',
+        phone: '',
+        department: '',
+        position: '',
+        hire_date: '',
+        salary: ''
+      });
+      setShowAddEmployee(false);
+      
+    } catch (err: any) {
+      setAddEmployeeError(err.message || 'Failed to add employee');
+    } finally {
+      setAddEmployeeLoading(false);
+    }
   };
 
   const exportToCSV = () => {
@@ -425,10 +521,19 @@ export function ManagerDashboard() {
           </button>
           
           <button 
-            onClick={() => setActiveSection('employees')}
+            onClick={() => setShowAddEmployee(true)}
             className="p-4 border-2 border-dashed border-green-200 rounded-lg text-center hover:border-green-300 hover:bg-green-50 transition-colors"
           >
             <Users className="mx-auto h-8 w-8 text-green-400 mb-2" />
+            <p className="text-sm font-medium text-gray-600">Add Employee</p>
+            <p className="text-xs text-gray-500 mt-1">Add single employee</p>
+          </button>
+          
+          <button 
+            onClick={() => setActiveSection('employees')}
+            className="p-4 border-2 border-dashed border-purple-200 rounded-lg text-center hover:border-purple-300 hover:bg-purple-50 transition-colors"
+          >
+            <Users className="mx-auto h-8 w-8 text-purple-400 mb-2" />
             <p className="text-sm font-medium text-gray-600">View Employees</p>
             <p className="text-xs text-gray-500 mt-1">Manage employee data</p>
           </button>
@@ -436,9 +541,9 @@ export function ManagerDashboard() {
           <button 
             onClick={exportToCSV}
             disabled={employees.length === 0}
-            className="p-4 border-2 border-dashed border-purple-200 rounded-lg text-center hover:border-purple-300 hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-4 border-2 border-dashed border-yellow-200 rounded-lg text-center hover:border-yellow-300 hover:bg-yellow-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Download className="mx-auto h-8 w-8 text-purple-400 mb-2" />
+            <Download className="mx-auto h-8 w-8 text-yellow-400 mb-2" />
             <p className="text-sm font-medium text-gray-600">Export Data</p>
             <p className="text-xs text-gray-500 mt-1">Download CSV</p>
           </button>
@@ -487,9 +592,16 @@ export function ManagerDashboard() {
               <span>Import</span>
             </button>
             <button
+              onClick={() => setShowAddEmployee(true)}
+              className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+            >
+              <Users className="h-4 w-4" />
+              <span>Add Employee</span>
+            </button>
+            <button
               onClick={exportToCSV}
               disabled={filteredEmployees.length === 0}
-              className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download className="h-4 w-4" />
               <span>Export</span>
@@ -545,6 +657,13 @@ export function ManagerDashboard() {
                         >
                           <Upload className="h-4 w-4" />
                           <span>Import Employees</span>
+                        </button>
+                        <button
+                          onClick={() => setShowAddEmployee(true)}
+                          className="inline-flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 ml-2"
+                        >
+                          <Users className="h-4 w-4" />
+                          <span>Add Employee</span>
                         </button>
                       </div>
                     ) : (
@@ -695,6 +814,193 @@ export function ManagerDashboard() {
                 }}
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Employee Modal */}
+      {showAddEmployee && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Add New Employee</h3>
+              <button
+                onClick={() => {
+                  setShowAddEmployee(false);
+                  setAddEmployeeError('');
+                  setEmployeeForm({
+                    employee_id: '',
+                    full_name: '',
+                    email: '',
+                    phone: '',
+                    department: '',
+                    position: '',
+                    hire_date: '',
+                    salary: ''
+                  });
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAddEmployee} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Employee ID *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={employeeForm.employee_id}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, employee_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="e.g., EMP001"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={employeeForm.full_name}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, full_name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Enter full name"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={employeeForm.email}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="employee@company.com"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={employeeForm.phone}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Department
+                  </label>
+                  <input
+                    type="text"
+                    value={employeeForm.department}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, department: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="e.g., Production, Quality Control"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Position
+                  </label>
+                  <input
+                    type="text"
+                    value={employeeForm.position}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, position: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="e.g., Machine Operator, Supervisor"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Hire Date
+                  </label>
+                  <input
+                    type="date"
+                    value={employeeForm.hire_date}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, hire_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Salary
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={employeeForm.salary}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, salary: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="50000"
+                  />
+                </div>
+              </div>
+              
+              {addEmployeeError && (
+                <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
+                  {addEmployeeError}
+                </div>
+              )}
+              
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddEmployee(false);
+                    setAddEmployeeError('');
+                    setEmployeeForm({
+                      employee_id: '',
+                      full_name: '',
+                      email: '',
+                      phone: '',
+                      department: '',
+                      position: '',
+                      hire_date: '',
+                      salary: ''
+                    });
+                  }}
+                  className="flex-1 px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addEmployeeLoading}
+                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {addEmployeeLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Adding...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Users className="h-4 w-4" />
+                      <span>Add Employee</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
