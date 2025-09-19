@@ -1140,6 +1140,253 @@ export function ManagerDashboard() {
           </div>
         </div>
       )}
+
+      {/* Employee Details Modal */}
+      {showEmployeeDetails && selectedEmployee && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Employee Details</h3>
+                <p className="text-sm text-gray-600">{selectedEmployee.full_name} ({selectedEmployee.employee_id})</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowEmployeeDetails(false);
+                  setSelectedEmployee(null);
+                  setEmployeeDetailsError('');
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {employeeDetailsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* Employee Info */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="font-medium text-gray-900 mb-3">Employee Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div><span className="font-medium">Name:</span> {selectedEmployee.full_name}</div>
+                      <div><span className="font-medium">ID:</span> {selectedEmployee.employee_id}</div>
+                      <div><span className="font-medium">Email:</span> {selectedEmployee.email || 'N/A'}</div>
+                      <div><span className="font-medium">Phone:</span> {selectedEmployee.phone || 'N/A'}</div>
+                      <div><span className="font-medium">Department:</span> {selectedEmployee.department || 'N/A'}</div>
+                      <div><span className="font-medium">Position:</span> {selectedEmployee.position || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  {/* Leave Records */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Leave Records</h4>
+                    <div className="bg-white border border-gray-200 rounded-lg">
+                      <div className="p-4 border-b border-gray-200">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                          <input
+                            type="date"
+                            value={newLeave.date}
+                            onChange={(e) => setNewLeave({ ...newLeave, date: e.target.value })}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <select
+                            value={newLeave.type}
+                            onChange={(e) => setNewLeave({ ...newLeave, type: e.target.value })}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="sick">Sick Leave</option>
+                            <option value="casual">Casual Leave</option>
+                            <option value="emergency">Emergency Leave</option>
+                            <option value="vacation">Vacation</option>
+                          </select>
+                          <input
+                            type="text"
+                            placeholder="Reason"
+                            value={newLeave.reason}
+                            onChange={(e) => setNewLeave({ ...newLeave, reason: e.target.value })}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <button
+                            onClick={addLeaveRecord}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                          >
+                            Add Leave
+                          </button>
+                        </div>
+                      </div>
+                      <div className="max-h-40 overflow-y-auto">
+                        {leaveRecords.length === 0 ? (
+                          <p className="p-4 text-gray-500 text-center">No leave records</p>
+                        ) : (
+                          <div className="divide-y divide-gray-200">
+                            {leaveRecords.map((leave) => (
+                              <div key={leave.id} className="p-3 flex justify-between items-center">
+                                <div>
+                                  <span className="font-medium">{new Date(leave.date).toLocaleDateString()}</span>
+                                  <span className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+                                    {leave.type}
+                                  </span>
+                                  <p className="text-sm text-gray-600 mt-1">{leave.reason}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mess Records */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Mess Facility Usage</h4>
+                    <div className="bg-white border border-gray-200 rounded-lg">
+                      <div className="p-4 border-b border-gray-200">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                          <input
+                            type="date"
+                            value={newMess.date}
+                            onChange={(e) => setNewMess({ ...newMess, date: e.target.value })}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <select
+                            value={newMess.meal_type}
+                            onChange={(e) => setNewMess({ ...newMess, meal_type: e.target.value })}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="breakfast">Breakfast</option>
+                            <option value="lunch">Lunch</option>
+                            <option value="dinner">Dinner</option>
+                            <option value="snack">Snack</option>
+                          </select>
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder="Cost ($)"
+                            value={newMess.cost}
+                            onChange={(e) => setNewMess({ ...newMess, cost: e.target.value })}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <button
+                            onClick={addMessRecord}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                          >
+                            Add Mess
+                          </button>
+                        </div>
+                      </div>
+                      <div className="max-h-40 overflow-y-auto">
+                        {messRecords.length === 0 ? (
+                          <p className="p-4 text-gray-500 text-center">No mess records</p>
+                        ) : (
+                          <div className="divide-y divide-gray-200">
+                            {messRecords.map((mess) => (
+                              <div key={mess.id} className="p-3 flex justify-between items-center">
+                                <div>
+                                  <span className="font-medium">{new Date(mess.date).toLocaleDateString()}</span>
+                                  <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                                    {mess.meal_type}
+                                  </span>
+                                </div>
+                                <span className="font-medium text-green-600">${mess.cost.toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Overtime Records */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Overtime Records</h4>
+                    <div className="bg-white border border-gray-200 rounded-lg">
+                      <div className="p-4 border-b border-gray-200">
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                          <input
+                            type="date"
+                            value={newOvertime.date}
+                            onChange={(e) => setNewOvertime({ ...newOvertime, date: e.target.value })}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="number"
+                            step="0.5"
+                            placeholder="Hours"
+                            value={newOvertime.hours}
+                            onChange={(e) => setNewOvertime({ ...newOvertime, hours: e.target.value })}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder="Rate/hr ($)"
+                            value={newOvertime.rate}
+                            onChange={(e) => setNewOvertime({ ...newOvertime, rate: e.target.value })}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Description"
+                            value={newOvertime.description}
+                            onChange={(e) => setNewOvertime({ ...newOvertime, description: e.target.value })}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <button
+                            onClick={addOvertimeRecord}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                          >
+                            Add Overtime
+                          </button>
+                        </div>
+                      </div>
+                      <div className="max-h-40 overflow-y-auto">
+                        {overtimeRecords.length === 0 ? (
+                          <p className="p-4 text-gray-500 text-center">No overtime records</p>
+                        ) : (
+                          <div className="divide-y divide-gray-200">
+                            {overtimeRecords.map((overtime) => (
+                              <div key={overtime.id} className="p-3 flex justify-between items-center">
+                                <div>
+                                  <span className="font-medium">{new Date(overtime.date).toLocaleDateString()}</span>
+                                  <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                                    {overtime.hours}h
+                                  </span>
+                                  {overtime.description && (
+                                    <p className="text-sm text-gray-600 mt-1">{overtime.description}</p>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  {overtime.rate && (
+                                    <span className="font-medium text-blue-600">
+                                      ${(overtime.hours * overtime.rate).toFixed(2)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Error Display */}
+                  {employeeDetailsError && (
+                    <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
+                      {employeeDetailsError}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
