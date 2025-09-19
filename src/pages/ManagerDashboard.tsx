@@ -224,6 +224,22 @@ export function ManagerDashboard() {
   });
   const [addEmployeeLoading, setAddEmployeeLoading] = useState(false);
   const [addEmployeeError, setAddEmployeeError] = useState('');
+  
+  // Employee details modal states
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [showEmployeeDetails, setShowEmployeeDetails] = useState(false);
+  const [employeeDetailsLoading, setEmployeeDetailsLoading] = useState(false);
+  const [employeeDetailsError, setEmployeeDetailsError] = useState('');
+  
+  // Employee tracking data
+  const [leaveRecords, setLeaveRecords] = useState<any[]>([]);
+  const [messRecords, setMessRecords] = useState<any[]>([]);
+  const [overtimeRecords, setOvertimeRecords] = useState<any[]>([]);
+  
+  // Form states for adding records
+  const [newLeave, setNewLeave] = useState({ date: '', type: 'sick', reason: '' });
+  const [newMess, setNewMess] = useState({ date: '', meal_type: 'lunch', cost: '' });
+  const [newOvertime, setNewOvertime] = useState({ date: '', hours: '', rate: '', description: '' });
 
   useEffect(() => {
     if (profile?.plant_id) {
@@ -373,6 +389,122 @@ export function ManagerDashboard() {
       setAddEmployeeError(err.message || 'Failed to add employee');
     } finally {
       setAddEmployeeLoading(false);
+    }
+  };
+
+  const handleEmployeeClick = async (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setShowEmployeeDetails(true);
+    setEmployeeDetailsError('');
+    
+    // Load employee tracking data
+    await loadEmployeeTrackingData(employee.id);
+  };
+  
+  const loadEmployeeTrackingData = async (employeeId: string) => {
+    try {
+      setEmployeeDetailsLoading(true);
+      
+      if (profile && isDemoUser(profile.id)) {
+        // Load from localStorage for demo users
+        const allLeaves = JSON.parse(localStorage.getItem('demoLeaves') || '[]');
+        const allMess = JSON.parse(localStorage.getItem('demoMess') || '[]');
+        const allOvertime = JSON.parse(localStorage.getItem('demoOvertime') || '[]');
+        
+        setLeaveRecords(allLeaves.filter((record: any) => record.employee_id === employeeId));
+        setMessRecords(allMess.filter((record: any) => record.employee_id === employeeId));
+        setOvertimeRecords(allOvertime.filter((record: any) => record.employee_id === employeeId));
+      } else {
+        // For real users, you would fetch from Supabase tables
+        // This would require creating tables for leaves, mess, overtime
+        setLeaveRecords([]);
+        setMessRecords([]);
+        setOvertimeRecords([]);
+      }
+    } catch (error) {
+      console.error('Error loading employee tracking data:', error);
+      setEmployeeDetailsError('Failed to load employee data');
+    } finally {
+      setEmployeeDetailsLoading(false);
+    }
+  };
+  
+  const addLeaveRecord = async () => {
+    if (!selectedEmployee || !newLeave.date || !newLeave.reason) return;
+    
+    try {
+      const leaveRecord = {
+        id: `leave-${Date.now()}`,
+        employee_id: selectedEmployee.id,
+        date: newLeave.date,
+        type: newLeave.type,
+        reason: newLeave.reason,
+        created_at: new Date().toISOString()
+      };
+      
+      if (profile && isDemoUser(profile.id)) {
+        const allLeaves = JSON.parse(localStorage.getItem('demoLeaves') || '[]');
+        const updatedLeaves = [...allLeaves, leaveRecord];
+        localStorage.setItem('demoLeaves', JSON.stringify(updatedLeaves));
+        setLeaveRecords([...leaveRecords, leaveRecord]);
+      }
+      
+      setNewLeave({ date: '', type: 'sick', reason: '' });
+    } catch (error) {
+      setEmployeeDetailsError('Failed to add leave record');
+    }
+  };
+  
+  const addMessRecord = async () => {
+    if (!selectedEmployee || !newMess.date || !newMess.cost) return;
+    
+    try {
+      const messRecord = {
+        id: `mess-${Date.now()}`,
+        employee_id: selectedEmployee.id,
+        date: newMess.date,
+        meal_type: newMess.meal_type,
+        cost: parseFloat(newMess.cost),
+        created_at: new Date().toISOString()
+      };
+      
+      if (profile && isDemoUser(profile.id)) {
+        const allMess = JSON.parse(localStorage.getItem('demoMess') || '[]');
+        const updatedMess = [...allMess, messRecord];
+        localStorage.setItem('demoMess', JSON.stringify(updatedMess));
+        setMessRecords([...messRecords, messRecord]);
+      }
+      
+      setNewMess({ date: '', meal_type: 'lunch', cost: '' });
+    } catch (error) {
+      setEmployeeDetailsError('Failed to add mess record');
+    }
+  };
+  
+  const addOvertimeRecord = async () => {
+    if (!selectedEmployee || !newOvertime.date || !newOvertime.hours) return;
+    
+    try {
+      const overtimeRecord = {
+        id: `overtime-${Date.now()}`,
+        employee_id: selectedEmployee.id,
+        date: newOvertime.date,
+        hours: parseFloat(newOvertime.hours),
+        rate: newOvertime.rate ? parseFloat(newOvertime.rate) : null,
+        description: newOvertime.description,
+        created_at: new Date().toISOString()
+      };
+      
+      if (profile && isDemoUser(profile.id)) {
+        const allOvertime = JSON.parse(localStorage.getItem('demoOvertime') || '[]');
+        const updatedOvertime = [...allOvertime, overtimeRecord];
+        localStorage.setItem('demoOvertime', JSON.stringify(updatedOvertime));
+        setOvertimeRecords([...overtimeRecords, overtimeRecord]);
+      }
+      
+      setNewOvertime({ date: '', hours: '', rate: '', description: '' });
+    } catch (error) {
+      setEmployeeDetailsError('Failed to add overtime record');
     }
   };
 
@@ -673,7 +805,11 @@ export function ManagerDashboard() {
                 </tr>
               ) : (
                 filteredEmployees.map((employee) => (
-                  <tr key={employee.id} className="hover:bg-gray-50">
+                  <tr 
+                    key={employee.id} 
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleEmployeeClick(employee)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {employee.employee_id}
                     </td>
