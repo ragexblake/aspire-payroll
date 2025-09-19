@@ -274,11 +274,25 @@ export function AdminDashboard() {
         
         setPasswordResetSuccess('Password reset successfully for demo user');
       } else {
-        // For Supabase users, this would require a backend service with service_role key
-        // to call supabase.auth.admin.updateUserById(managerId, { password: newPassword })
-        // For now, we'll simulate success
-        console.log('Note: Actual password reset for Supabase users requires backend service with service_role key');
-        setPasswordResetSuccess('Password reset request processed (requires backend implementation for Supabase users)');
+        // For Supabase users, we need to use the admin API
+        // Note: This requires the service_role key, not the anon key
+        try {
+          // This will fail with anon key - need service_role key for admin operations
+          const { error } = await supabase.auth.admin.updateUserById(
+            selectedManagerForPasswordReset.id,
+            { password: newPassword }
+          );
+          
+          if (error) {
+            throw new Error(`Supabase admin operation failed: ${error.message}. This requires a service_role key and backend implementation.`);
+          }
+          
+          setPasswordResetSuccess('Password reset successfully in Supabase');
+        } catch (supabaseError: any) {
+          console.error('Supabase password reset error:', supabaseError);
+          setPasswordResetError(`Backend password reset not available: ${supabaseError.message}. Currently only demo users support password reset.`);
+          return;
+        }
       }
       
       // Reset all state and close modal
