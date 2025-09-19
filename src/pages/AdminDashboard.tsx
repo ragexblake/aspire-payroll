@@ -72,8 +72,6 @@ export function AdminDashboard() {
   const [selectedManagerForPasswordReset, setSelectedManagerForPasswordReset] = useState<Manager | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
   const [passwordResetLoading, setPasswordResetLoading] = useState(false);
   const [passwordResetError, setPasswordResetError] = useState('');
   const [passwordResetSuccess, setPasswordResetSuccess] = useState('');
@@ -240,7 +238,7 @@ export function AdminDashboard() {
     }
   };
 
-  const handleSendOTPForPasswordReset = async () => {
+  const handleResetManagerPassword = async () => {
     if (!selectedManagerForPasswordReset || !profile) return;
     
     // Validate passwords
@@ -258,84 +256,6 @@ export function AdminDashboard() {
       setPasswordResetError('Password must be at least 6 characters long');
       return;
     }
-    
-    try {
-      setPasswordResetLoading(true);
-      setPasswordResetError('');
-      setPasswordResetSuccess('');
-      
-      const result = await EmailService.sendOTPEmail(
-        profile.email,
-        selectedManagerForPasswordReset.id,
-        profile.id
-      );
-      
-      if (result.success) {
-        setOtpSent(true);
-        setPasswordResetSuccess(`OTP has been sent to your admin email: ${profile.email}`);
-      } else {
-        console.error('OTP sending failed:', result.error);
-        setPasswordResetError(result.error || 'Failed to send OTP');
-      }
-    } catch (err: any) {
-      setPasswordResetError(err.message || 'Failed to send OTP');
-    } finally {
-      setPasswordResetLoading(false);
-    }
-  };
-
-  const handleVerifyOTPForPasswordReset = async (otp: string) => {
-    if (!selectedManagerForPasswordReset || !profile) return;
-    
-    try {
-      setPasswordResetLoading(true);
-      setPasswordResetError('');
-      
-      // Query the otp_codes table to verify the OTP
-      const { data: otpData, error: otpError } = await supabase
-        .from('otp_codes')
-        .select('*')
-        .eq('otp_code', otp)
-        .eq('admin_id', profile.id)
-        .eq('operation_type', 'password_reset')
-        .eq('used', false)
-        .gt('expires_at', new Date().toISOString())
-        .single();
-      
-      if (otpError || !otpData) {
-        setPasswordResetError('Invalid or expired OTP');
-        return;
-      }
-      
-      // Check if the target_data matches the selected manager
-      const targetData = otpData.target_data as any;
-      if (targetData?.manager_id !== selectedManagerForPasswordReset.id) {
-        setPasswordResetError('Invalid OTP for this manager');
-        return;
-      }
-      
-      // Mark OTP as used
-      const { error: updateError } = await supabase
-        .from('otp_codes')
-        .update({ used: true })
-        .eq('id', otpData.id);
-      
-      if (updateError) {
-        setPasswordResetError('Failed to verify OTP');
-        return;
-      }
-      
-      setOtpVerified(true);
-      setPasswordResetSuccess('OTP verified successfully. You can now reset the password.');
-    } catch (err: any) {
-      setPasswordResetError(err.message || 'Failed to verify OTP');
-    } finally {
-      setPasswordResetLoading(false);
-    }
-  };
-
-  const handleResetManagerPassword = async () => {
-    if (!selectedManagerForPasswordReset || !newPassword) return;
     
     try {
       setPasswordResetLoading(true);
@@ -367,8 +287,6 @@ export function AdminDashboard() {
         setSelectedManagerForPasswordReset(null);
         setNewPassword('');
         setConfirmNewPassword('');
-        setOtpSent(false);
-        setOtpVerified(false);
         setPasswordResetError('');
         setPasswordResetSuccess('');
       }, 2000);
@@ -839,10 +757,6 @@ export function AdminDashboard() {
                 onClick={() => {
                   setShowPasswordResetModal(false);
                   setSelectedManagerForPasswordReset(null);
-                  setNewPassword('');
-                  setConfirmNewPassword('');
-                  setOtpSent(false);
-                  setOtpVerified(false);
                   setPasswordResetError('');
                   setPasswordResetSuccess('');
                 }}
@@ -866,109 +780,63 @@ export function AdminDashboard() {
             </div>
             
             {/* Step 1: Password Input */}
-            {!otpSent && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    New Password
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Lock className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter new password"
-                      minLength={6}
-                    />
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-4 w-4 text-gray-400" />
                   </div>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter new password"
+                    minLength={6}
+                  />
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Confirm New Password
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Lock className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <input
-                      type="password"
-                      value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Confirm new password"
-                      minLength={6}
-                    />
-                  </div>
-                </div>
-                
-                <button
-                  onClick={handleSendOTPForPasswordReset}
-                  disabled={passwordResetLoading || !newPassword || !confirmNewPassword}
-                  className="w-full flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {passwordResetLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>Sending OTP...</span>
-                    </>
-                  ) : (
-                    <>
-                      <KeyRound className="h-4 w-4" />
-                      <span>Send OTP to Manager</span>
-                    </>
-                  )}
-                </button>
               </div>
-            )}
-            
-            {/* Step 2: OTP Verification */}
-            {otpSent && !otpVerified && (
-              <OTPVerification
-                onVerify={handleVerifyOTPForPasswordReset}
-                onResend={handleSendOTPForPasswordReset}
-                loading={passwordResetLoading}
-                error={passwordResetError}
-                success={passwordResetSuccess}
-              />
-            )}
-            
-            {/* Step 3: Confirm Reset */}
-            {otpVerified && (
-              <div className="text-center space-y-4">
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <div className="flex justify-center mb-2">
-                    <div className="p-2 bg-green-100 rounded-full">
-                      <KeyRound className="h-6 w-6 text-green-600" />
-                    </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-4 w-4 text-gray-400" />
                   </div>
-                  <h4 className="font-medium text-green-900 mb-1">OTP Verified Successfully</h4>
-                  <p className="text-sm text-green-700">Ready to reset the manager's password</p>
+                  <input
+                    type="password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Confirm new password"
+                    minLength={6}
+                  />
                 </div>
-                
-                <button
-                  onClick={handleResetManagerPassword}
-                  disabled={passwordResetLoading}
-                  className="w-full flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {passwordResetLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>Resetting Password...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="h-4 w-4" />
-                      <span>Reset Password</span>
-                    </>
-                  )}
-                </button>
               </div>
-            )}
+              
+              <button
+                onClick={handleResetManagerPassword}
+                disabled={passwordResetLoading || !newPassword || !confirmNewPassword}
+                className="w-full flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {passwordResetLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Resetting Password...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4" />
+                    <span>Reset Password</span>
+                  </>
+                )}
+              </button>
+            </div>
             
             {/* Error/Success Messages */}
             {passwordResetError && (
@@ -977,7 +845,7 @@ export function AdminDashboard() {
               </div>
             )}
             
-            {passwordResetSuccess && !otpVerified && (
+            {passwordResetSuccess && (
               <div className="mt-4 text-green-600 text-sm bg-green-50 p-3 rounded-lg border border-green-200">
                 {passwordResetSuccess}
               </div>
